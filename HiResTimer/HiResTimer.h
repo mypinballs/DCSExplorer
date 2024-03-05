@@ -5,7 +5,7 @@
 //
 
 #pragma once
-#include <Windows.h>
+//#include <Windows.h>
 
 // -----------------------------------------------------------------------
 //
@@ -30,7 +30,7 @@ public:
 		if (qpcAvailable)
 		{
 			// use the high-res performance counter
-			LARGE_INTEGER t;
+			int64_t t; //LARGE_INTEGER
 			QueryPerformanceCounter(&t);
 			return t.QuadPart;
 		}

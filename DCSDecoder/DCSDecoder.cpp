@@ -1960,3 +1960,37 @@ DCSDecoder::RegistrationMap &DCSDecoder::GetRegistrationMap()
 	return *regMap;
 }
 
+
+
+// //file folder loading addons - @mypinballs
+// //possibly move to own cpp file
+// DCSDecoder::ZipLoadStatus DCSDecoder::LoadROMFromFolder(
+// 	const char *folderPath, std::list<ZipFileData> &romData, 
+// 	const char *explicitU2, std::string *errorDetails)
+// {
+//   // Add error handling logic here
+//   // Set up error function and variables
+
+//   // Iterate through the files in the folder
+//   for (auto& p : std::filesystem::directory_iterator(folderPath))
+//   {
+//     if (std::filesystem::is_regular_file(p))
+//     {
+//       // Create an entry for the file in our return list
+//       auto &rd = romData.emplace_back(p.path().filename().string(), std::filesystem::file_size(p));
+
+//       // Read the file contents
+//       std::ifstream file(p.path(), std::ios::binary);
+//       if (file.is_open())
+//       {
+//         file.read(rd.data.get(), rd.dataSize);
+//       }
+//       else
+//       {
+//         return Error(ZipLoadStatus::ExtractError, "Error reading file from folder \"%s\"", folderPath);
+//       }
+//     }
+//   }
+
+//   return ZipLoadStatus::Success;
+// }

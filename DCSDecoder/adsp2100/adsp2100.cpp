@@ -116,6 +116,7 @@
 #include "adsp2100.h"
 
 
+
 /*###################################################################################################
 **	CONSTANTS
 **#################################################################################################*/
@@ -125,6 +126,11 @@
 #define CHIP_TYPE_ADSP2101	1
 #define CHIP_TYPE_ADSP2105	2
 #define CHIP_TYPE_ADSP2115	3
+
+
+
+//@mypinballs extra defines to fix windows shite
+#define _countof(arr) (sizeof(arr) / sizeof(arr[0]))
 
 
 
@@ -181,17 +187,17 @@ static void check_irqs(void);
 **#################################################################################################*/
 
 
-INLINE uint32_t RWORD_DATA(uint32_t addr)
+inline uint32_t RWORD_DATA(uint32_t addr)
 {
 	return adsp2100_host_read_dm(addr);
 }
 
-INLINE void WWORD_DATA(uint32_t addr, uint32_t data)
+inline void WWORD_DATA(uint32_t addr, uint32_t data)
 {
 	adsp2100_host_write_dm(addr, data);
 }
 
-INLINE uint32_t RWORD_PGM(uint32_t addr)
+inline uint32_t RWORD_PGM(uint32_t addr)
 {
 	// special case for original (pre DCS-95) boards - PM($3000)
 	// is the data port
@@ -201,7 +207,7 @@ INLINE uint32_t RWORD_PGM(uint32_t addr)
 	return adsp2100_op_rom[addr];
 }
 
-INLINE void WWORD_PGM(uint32_t addr, uint32_t data)
+inline void WWORD_PGM(uint32_t addr, uint32_t data)
 {
 	// special case hack for pre-WPC95 DCS - program memory 0x3000 
 	// is the sound board data port
@@ -218,39 +224,39 @@ INLINE void WWORD_PGM(uint32_t addr, uint32_t data)
 **	OTHER INLINES
 **#################################################################################################*/
 
-INLINE void set_core_2100(void)
+inline void set_core_2100(void)
 {
 	chip_type = CHIP_TYPE_ADSP2100;
 	mstat_mask = 0x0f;
 	imask_mask = 0x0f;
 }
 
-#if (HAS_ADSP2101)
-INLINE void set_core_2101(void)
+//#if (HAS_ADSP2101)
+inline void set_core_2101(void)
 {
 	chip_type = CHIP_TYPE_ADSP2101;
 	mstat_mask = 0x7f;
 	imask_mask = 0x3f;
 }
-#endif
+//#endif
 
-#if (HAS_ADSP2105)
-INLINE void set_core_2105(void)
+//#if (HAS_ADSP2105)
+inline void set_core_2105(void)
 {
 	chip_type = CHIP_TYPE_ADSP2105;
 	mstat_mask = 0x7f;
 	imask_mask = 0x3f;
 }
-#endif
+//#endif
 
-#if (HAS_ADSP2115)
-INLINE void set_core_2115(void)
+//#if (HAS_ADSP2115)
+inline void set_core_2115(void)
 {
 	chip_type = CHIP_TYPE_ADSP2115;
 	mstat_mask = 0x7f;
 	imask_mask = 0x3f;
 }
-#endif
+//#endif
 
 
 /*###################################################################################################
@@ -265,7 +271,7 @@ INLINE void set_core_2115(void)
 **	IRQ HANDLING
 **#################################################################################################*/
 
-INLINE int adsp2100_generate_irq(int which)
+inline int adsp2100_generate_irq(int which)
 {
 	/* skip if masked */
 	if (!(adsp2100.imask & (1 << which)))
@@ -290,7 +296,7 @@ INLINE int adsp2100_generate_irq(int which)
 }
 
 
-INLINE int adsp2101_generate_irq(int which, int indx)
+inline int adsp2101_generate_irq(int which, int indx)
 {
 	/* skip if masked */
 	if (!(adsp2100.imask & (0x20 >> indx)))
@@ -682,7 +688,7 @@ static void debugger()
 		// read a command
 		printf("$ ");
 		if (fgets(buf, sizeof(buf), stdin) == nullptr)
-			strcpy_s(buf, "\x1A");
+			strcpy(buf, "\x1A");
 
 		// trim leading and trailing spaces
 		char *p;
@@ -696,7 +702,7 @@ static void debugger()
 		if (*p == 0 && repeatCommand != nullptr)
 		{
 			// empty command - repeat last g, t, or p command
-			strcpy_s(buf, repeatCommand);
+			strcpy(buf, repeatCommand);
 		}
 
 		// presume the command isn't one that auto-repeats

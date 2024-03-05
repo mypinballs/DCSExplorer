@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <list>
-#include <Windows.h>
+//#include <Windows.h>
 #include <timeapi.h>
 #include <time.h>
 #include <realtimeapiset.h>
@@ -28,7 +28,7 @@ HiResTimer::HiResTimer()
 		// Get the performance counter frequency.  If successful, set up
 		// to read times using the performance counter.  Otherwise read via
 		// the low-res timer.
-		LARGE_INTEGER freq;
+		int64_t freq; //LARGE_INTEGER
 		if (QueryPerformanceFrequency(&freq) && freq.QuadPart != 0)
 		{
 			// QueryPerformanceCounter is available - use it to calculate

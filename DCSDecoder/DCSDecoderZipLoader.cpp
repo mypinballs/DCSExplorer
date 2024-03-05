@@ -24,10 +24,13 @@
 #include <regex>
 #include <list>
 #include <functional>
-#include <Windows.h>  // for the UINTx types required by unzip.h
+#include <unordered_map>
+#include <cstring>
+//#include <Windows.h>  // for the UINTx types required by unzip.h
 #include "DCSDecoder.h"
 #include "../miniz/miniz.h"
 #include "../miniz/miniz_zip.h"
+//#include "../miniz-cpp/zip_file.hpp"
 
 #pragma comment(lib, "miniz")
 
@@ -137,7 +140,7 @@ DCSDecoder::ZipLoadStatus DCSDecoder::LoadROMFromZipFile(
 		// check if the heuristics pass, or if this file matches the name 
 		// explicitly designated as U2 in the options
 		if ((IsJUMP(rd.data.get()) && strchr(rd.filename.c_str(), '2') != nullptr)
-			|| (explicitU2 != nullptr && _stricmp(rd.filename.c_str(), explicitU2) == 0))
+			|| (explicitU2 != nullptr && std::strcmp(rd.filename.c_str(), explicitU2) == 0))
 		{
 			// it passes the heuristics - use this as U2
 			rdu2 = &rd;

@@ -3,3 +3,11 @@ Debug/
 Release/
 Win32/
 *.o
+.vscode/
+.DS_Store
+output/
+resources/
+miniz/
+miniz-cpp/
+*.code-workspace
+temp.cpp

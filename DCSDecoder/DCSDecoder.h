@@ -288,6 +288,13 @@ public:
 		const char *explicitU2 = nullptr,
 		std::string *errorDetails = nullptr);
 
+    // //file load options - @mypinballs
+    // ZipLoadStatus LoadROMFromFolder(
+	// const char *folderPath, std::list<ZipFileData> &romData, 
+	// const char *explicitU2, std::string *errorDetails);
+
+
+
 	// Find the catalog in a ROM U2 image.  The catalog contains
 	// a list of the game's ROMs, with their sizes and checksums,
 	// and the nubmer of tracks.  The different DCS versions place
@@ -465,7 +472,7 @@ public:
 
 		// The operand bytes.  This array is only populated as
 		// far as nOperandBytes.
-		uint8_t operandBytes[8] { 0, 0, 0, 0, 0, 0, 0, 0 };
+		uint8_t operandBytes[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 		// Mnemonic description of the instruction, with operands
 		std::string desc;

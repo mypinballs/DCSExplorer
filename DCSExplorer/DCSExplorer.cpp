@@ -47,11 +47,20 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
-#include <Windows.h>
-#include <conio.h>
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+
+//#include <Windows.h>
+//#include <conio.h> //commented @mypinballs
+#include <curses.h> //added @mypinballs
 #include "../Utilities/BuildDate.h"
-#include "../SimpleWindowsAudio/SimpleWindowsAudio.h"
-#include "../HiResTimer/HiResTimer.h"
+//#include "../SimpleSDLAudio/SimpleWindowsAudio.h" @mypinballs commented
+#include "../HiResTimerMPC/HiResTimer.h"
+#include "../HiResTimerMPC/HiResTimer.h"
 #include "../DCSDecoder/DCSDecoder.h"
 #include "../DCSDecoder/DCSDecoderNative.h"
 #include "../DCSDecoder/DCSDecoderEmu.h"
@@ -59,8 +68,8 @@
 // include the DCSDecoder library and libsamplerate
 #pragma comment(lib, "DCSDecoder")
 #pragma comment(lib, "libsamplerate")
-#pragma comment(lib, "SimpleWindowsAudio")
-#pragma comment(lib, "HiResTimer")
+//#pragma comment(lib, "SimpleWindowsAudio") @mypinballs commented
+//#pragma comment(lib, "HiResTimer") @mypinballs commented
 
 // --------------------------------------------------------------------------
 //
@@ -78,10 +87,10 @@ extern unsigned adsp2100_dasm(char *buffer, unsigned long op);
 //
 
 // high-resolution timer
-static HiResTimer hrt;
+static HiResTimer hrt; // needs converting to std c @mypinballs
 
 // Windows audio interface
-std::unique_ptr<SimpleWindowsAudio> audioPlayer;
+//std::unique_ptr<SimpleWindowsAudio> audioPlayer; //commented @mypinballs
 
 
 // --------------------------------------------------------------------------
@@ -145,6 +154,7 @@ AudioBuffer stream;
 //
 static char kbBuf[128];
 static int kbBufLen = 0;
+static uint8_t MAX_PATH = 255;
 
 // command lines awaiting processing
 static std::list<std::string> pendingCmdLine;
@@ -248,6 +258,32 @@ public:
 	// clear the history
 	void ClearHistory() { history.clear(); }
 };
+
+
+//helper tools @mypinballs
+
+// Case-insensitive string comparison function
+bool caseInsensitiveStringCompare(const std::string& str1, const std::string& str2) {
+    if (str1.length() != str2.length()) {
+        return false; // Strings are of different lengths, hence not equal
+    }
+
+    // Convert both strings to lowercase and compare
+    return std::equal(str1.begin(), str1.end(), str2.begin(), str2.end(),
+                      [](char a, char b) { return ::tolower(a) == ::tolower(b); });
+}
+
+
+// Case-insensitive string comparison up to a specific number of characters
+bool caseInsensitiveStringCompareN(const std::string& str1, const std::string& str2, size_t n) {
+    if (n > std::min(str1.length(), str2.length())) {
+        return false; // n exceeds the length of at least one string
+    }
+
+    // Convert characters up to the specified length to lowercase and compare
+    return std::equal(str1.begin(), str1.begin() + n, str2.begin(),
+                      [](char a, char b) { return ::tolower(a) == ::tolower(b); });
+}
 
 // --------------------------------------------------------------------------
 //
@@ -419,11 +455,21 @@ int main(int argc, char **argv)
 			// enable validation mode with file capture
 			validationMode = true;
 			validationFile = argv[argi] + 11;
-			if (fopen_s(&validationFp, validationFile, "w") != 0 || validationFp == nullptr)
+			// if (fopen_s(&validationFp, validationFile, "w") != 0 || validationFp == nullptr)
+            validationFp = fopen(validationFile, "w");
+            if (validationFp == nullptr) //validationFp != 0 || 
 			{
 				printf("Unable to open validation report file \"%s\"\n", validationFile);
 				exit(2);
 			}
+
+            // // Attempt to open the file using std::ofstream
+            // std::ofstream validationFp(validationFile);
+            // if (!validationFp.is_open()) {
+            //     std::cerr << "Unable to open validation report file \"" << validationFile << "\"" << std::endl;
+            //     exit(2);
+            // }
+            
 		}
 		else if (strcmp(argp, "--terse") == 0)
 		{
@@ -465,7 +511,8 @@ int main(int argc, char **argv)
 		{
 			// if it matches exactly, accept this one uniquely, even it 
 			// matches other leading substrings
-			if (_stricmp(r.first.c_str(), decoderVersion) == 0)
+			//if (_stricmp(r.first.c_str(), decoderVersion) == 0)
+            if (caseInsensitiveStringCompare(r.first.c_str(), decoderVersion) == 0)
 			{
 				matchCnt = 1;
 				match = &r.second;
@@ -473,7 +520,7 @@ int main(int argc, char **argv)
 			}
 
 			// it's not an exact match, so check for a leading substring match
-			if (_strnicmp(r.first.c_str(), decoderVersion, strlen(decoderVersion)) == 0)
+			if (caseInsensitiveStringCompareN(r.first.c_str(), decoderVersion, strlen(decoderVersion)) == 0)
 			{
 				++matchCnt;
 				match = &r.second;
@@ -570,7 +617,7 @@ int main(int argc, char **argv)
 			"   --extract-format=<fmt>     set the stream extract format (raw, wav [default])\n"
 			"   --extract-streams=<pre>    extract all streams to WAV files, prefixing each filename with <pre>\n"
 			"   --extract-tracks=<pre>     extract all tracks to WAV files, prefixing each filename with <pre>\n"
-			"   --ignore-checksum-errors   ignore checksum errors (same as -I)"
+			"   --ignore-checksum-errors   ignore checksum errors (same as -I)\n"
 			"   --info           information only; show ROM information and other requested listings, then exit\n"
 			"   --programs       show full program opcode listings for all tracks\n"
 			"   --silent         run in silent mode (no audio output, for fast validation testing)\n"
@@ -750,10 +797,17 @@ int main(int argc, char **argv)
 				// Format the stream type.  The 1994+ format has a type and subtype;
 				// the 1993 formats only have a major type.
 				char typeCode[10];
-				if (osVersion == DCSDecoder::OSVersion::OS93a || osVersion == DCSDecoder::OSVersion::OS93b)
-					sprintf_s(typeCode, "%d", info.formatType);
+
+				// if (osVersion == DCSDecoder::OSVersion::OS93a || osVersion == DCSDecoder::OSVersion::OS93b)
+				// 	sprintf_s(typeCode, "%d", info.formatType);
+				// else
+				// 	sprintf_s(typeCode, "%d.%d", info.formatType, info.formatSubType);
+
+                if (osVersion == DCSDecoder::OSVersion::OS93a || osVersion == DCSDecoder::OSVersion::OS93b)
+				    sprintf(typeCode, "%d", info.formatType);
 				else
-					sprintf_s(typeCode, "%d.%d", info.formatType, info.formatSubType);
+				    sprintf(typeCode, "%d.%d", info.formatType, info.formatSubType);
+
 
 				// figure the statistics
 				float playbackTime = static_cast<float>(info.nFrames) * 0.00768f;
@@ -785,9 +839,11 @@ int main(int argc, char **argv)
 
 					// format the time separately
 					char time[40];
-					sprintf_s(time, "%.2fms%s",
-						static_cast<float>(ti.time) * 7.68f,
-						ti.looping ? "(loop)" : "      ");
+					// sprintf_s(time, "%.2fms%s",
+					// 	static_cast<float>(ti.time) * 7.68f,
+					// 	ti.looping ? "(loop)" : "      ");
+
+                    sprintf(time, "%.2fms%s",static_cast<float>(ti.time) * 7.68f,ti.looping ? "(loop)" : "      ");
 
 					// display the track description
 					static const char *typeName[] ={ "NA", "Play", "Defer", "Indirect" };
@@ -842,13 +898,13 @@ int main(int argc, char **argv)
 
 					// format the address
 					char addr[64];
-					sprintf_s(addr, "Address $%07lx [%c%d $%05lx]",
+					sprintf(addr, "Address $%07lx [%c%d $%05lx]",
 						ti.address, hwVersion == DCSDecoder::HWVersion::DCS95 ? 'S' : 'U',
 						trackPtr.NominalChipNumber(), decoder->ROMPointerOffset(trackPtr));
 
 					// format the time
 					char time[40];
-					sprintf_s(time, "Time %.2fms%s",
+					sprintf(time, "Time %.2fms%s",
 						static_cast<float>(ti.time) * 7.68f,
 						ti.looping ? " (loop)" : "");
 
@@ -899,7 +955,10 @@ int main(int argc, char **argv)
 	{
 		// open the file
 		FILE *fp = nullptr;
-		if (fopen_s(&fp, dasmFile, "w") != 0 || fp == nullptr)
+        
+		//if (fopen_s(&fp, dasmFile, "w") != 0 || fp == nullptr)
+        fp = fopen(dasmFile, "w");
+        if (fp == nullptr) //fp != 0 || 
 		{
 			printf("Unable to create disassembly file \"%s\"\n (system error %d)", dasmFile, errno);
 			exit(2);
@@ -1055,14 +1114,24 @@ int main(int argc, char **argv)
 		// write a preamble to the log file
 		if (validationFp != nullptr)
 		{
-			time_t t;
-			time(&t);
-			char timestr[128];
-			struct tm tm;
-			localtime_s(&tm, &t);
-			asctime_s(timestr, &tm);
-			if (auto *p = strchr(timestr, '\n'); p != nullptr)
-				*p = 0;
+			// time_t t;
+			// time(&t);
+			// char timestr[128];
+			// struct tm tm;
+			// localtime_s(&tm, &t);
+			// asctime_s(timestr, &tm);
+			// if (auto *p = strchr(timestr, '\n'); p != nullptr)
+			// 	*p = 0;
+            
+            std::time_t currentTime = std::time(nullptr);
+            std::tm* tm = std::localtime(&currentTime);
+    
+            char timestr[128];
+            std::strftime(timestr, sizeof(timestr), "%c", tm); // Format time as string
+            std::string timestrStr(timestr); // Convert C-string to C++ string
+            if (auto p = timestrStr.find('\n'); p != std::string::npos) {
+                timestrStr.erase(p);
+            }
 
 			fprintf(validationFp, "DCSExplorer - validation mode log, ROM %s, %s\n"
 				"Listing frames containing differences in PCM output\n"
@@ -1095,15 +1164,16 @@ int main(int argc, char **argv)
 	}
 
 	// start the audio player
-	audioPlayer.reset(new SimpleWindowsAudio(NULL, 31250, 2, 60));
-	if (!audioPlayer->InitDirectSound())
-	{
-		printf("\nError starting audio player: %s\n", audioPlayer->GetErrorDesc());
-		exit(2);
-	}
+    // @mypinballs comment
+	// audioPlayer.reset(new SimpleWindowsAudio(NULL, 31250, 2, 60)); 
+	// if (!audioPlayer->InitDirectSound())
+	// {
+	// 	printf("\nError starting audio player: %s\n", audioPlayer->GetErrorDesc());
+	// 	exit(2);
+	// }
 
-	// set up the idle task
-	audioPlayer->SetIdleTask(IdleTask, nullptr);
+	// // set up the idle task
+	// audioPlayer->SetIdleTask(IdleTask, nullptr);
 
 	// boot the decoder and set the default volume
 	decoder->HardBoot();
@@ -1505,7 +1575,8 @@ int main(int argc, char **argv)
 				// hardware playback position has opened up enough space in the buffer,
 				// so this naturally keeps the decoding rate in sync with the actual
 				// audio output.
-				audioPlayer->WriteAudioData(buf, static_cast<DWORD>(dst - buf));
+
+				//audioPlayer->WriteAudioData(buf, static_cast<DWORD>(dst - buf));
 			}
 		}
 	}
@@ -1577,48 +1648,93 @@ int main(int argc, char **argv)
 // processing of deferred or scheduled asynchronous events on the audio
 // player thread.
 //
-static void IdleTask(void*)
-{
-	// check for keyboard input
-	while (_kbhit())
-	{
-		int c = _getch();
-		if (c == 0 || c == 0xE0)
-		{
-			// extended key  - ignore
-			c = _getch();
-		}
-		else if (c == '\n' || c == '\r')
-		{
-			printf("\n>");
-			kbBuf[kbBufLen] = 0;
-			pendingCmdLine.emplace_back(kbBuf);
+// static void IdleTask(void*)
+// {
+// 	// check for keyboard input
+// 	while (_kbhit())
+// 	{
+// 		int c = _getch();
+// 		if (c == 0 || c == 0xE0)
+// 		{
+// 			// extended key  - ignore
+// 			c = _getch();
+// 		}
+// 		else if (c == '\n' || c == '\r')
+// 		{
+// 			printf("\n>");
+// 			kbBuf[kbBufLen] = 0;
+// 			pendingCmdLine.emplace_back(kbBuf);
 
-			kbBufLen = 0;
-		}
-		else if (c == '\b')
-		{
-			if (kbBufLen > 0)
-			{
-				printf("\b \b");
-				--kbBufLen;
-			}
-		}
-		else if (c >= 32 && c < 128)
-		{
-			if (kbBufLen + 1 < _countof(kbBuf))
-			{
-				printf("%c", c);
-				kbBuf[kbBufLen++] = c;
-			}
-		}
-		else if (c == 4 || c == 26)
-		{
-			// ^D/^Z - quit
-			quitRequested = true;
-		}
-	}
+// 			kbBufLen = 0;
+// 		}
+// 		else if (c == '\b')
+// 		{
+// 			if (kbBufLen > 0)
+// 			{
+// 				printf("\b \b");
+// 				--kbBufLen;
+// 			}
+// 		}
+// 		else if (c >= 32 && c < 128)
+// 		{
+// 			if (kbBufLen + 1 < _countof(kbBuf))
+// 			{
+// 				printf("%c", c);
+// 				kbBuf[kbBufLen++] = c;
+// 			}
+// 		}
+// 		else if (c == 4 || c == 26)
+// 		{
+// 			// ^D/^Z - quit
+// 			quitRequested = true;
+// 		}
+// 	}
+// }
+
+
+void IdleTask(void*)
+{
+    // Check for keyboard input
+    while (true)
+    {
+        if (std::cin.rdbuf()->in_avail())
+        {
+            int c = std::cin.get();
+
+            if (c == '\n' || c == '\r')
+            {
+                std::cout << '\n' << '>';
+                kbBuf[kbBufLen] = 0;
+                pendingCmdLine.emplace_back(kbBuf);
+
+                kbBufLen = 0;
+            }
+            else if (c == '\b')
+            {
+                if (kbBufLen > 0)
+                {
+                    std::cout << "\b \b";
+                    --kbBufLen;
+                }
+            }
+            else if (c >= 32 && c < 128)
+            {
+                if (kbBufLen + 1 < sizeof(kbBuf))
+                {
+                    std::cout << static_cast<char>(c);
+                    kbBuf[kbBufLen++] = static_cast<char>(c);
+                }
+            }
+            else if (c == 4 || c == 26)
+            {
+                // ^D/^Z - quit
+                quitRequested = true;
+                break;
+            }
+        }
+    }
 }
+
 
 // --------------------------------------------------------------------------
 //
@@ -1676,9 +1792,11 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 		// open a WAV file to store the output
 		FILE *fp = nullptr;
 		bool ok = true;
-		if (fopen_s(&fp, filename, "wb") != 0 || fp == nullptr)
+		//if (fopen_s(&fp, filename, "wb") != 0 || fp == nullptr)
+        fp = fopen(filename, "wb");
+        if ( fp == nullptr) //fp != 0 ||
 		{
-			printf("Unable to open extraction output file \"%s\" (system error %d)\n", filename, errno);
+			printf("Unable to open extraction output file for stream creation \"%s\" (system error %d)\n", filename, errno);
 			nError += 1;
 		}
 		else
@@ -1818,8 +1936,8 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 					// generate the filename and description
 					char filename[MAX_PATH];
 					char desc[128];
-					sprintf_s(filename, "%s_%04X_%02X_%06X.", prefix, trackNum, streamNum, addr);
-					sprintf_s(desc, "track %04x, stream #%d, address $%06x", trackNum, streamNum, addr);
+					sprintf(filename, "%s_%04X_%02X_%06X.", prefix, trackNum, streamNum, addr);
+					sprintf(desc, "track %04x, stream #%d, address $%06x", trackNum, streamNum, addr);
 
 					// extract to the desired format
 					if (format != nullptr && strcmp(format, "raw") == 0)
@@ -1828,8 +1946,12 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 						// our custom-defined DCS container file format, which is just
 						// some header information plus the raw DCS stream data.
 						FILE *fp = nullptr;
-						strcat_s(filename, "dcs");
-						if (fopen_s(&fp, filename, "wb") == 0 && fp != nullptr)
+						//strcat_s(filename, "dcs");
+                        strcat(filename, "dcs");
+						//if (fopen_s(&fp, filename, "wb") == 0 && fp != nullptr)
+                        fp = fopen(filename, "wb");
+                        if (fp == nullptr) //fp != 0 || 
+
 						{
 							// Build the header:
 							// 
@@ -1870,7 +1992,7 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 							if (fwrite(hdr, 1, sizeof(hdr), fp) != sizeof(hdr)
 								|| fwrite(streamPtr.p, 1, info.nBytes, fp) != info.nBytes)
 							{
-								printf("Error writing extraction output file \"%s\" (system error %d)\n", filename, errno);
+								printf("Error writing extraction output file for track extraction\"%s\" (system error %d)\n", filename, errno);
 								nError += 1;
 							}
 
@@ -1883,7 +2005,7 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 						}
 						else
 						{
-							printf("Unable to open extraction output file \"%s\" (system error %d)\n", filename, errno);
+							printf("Unable to open extraction output file for track extraction \"%s\" (system error %d)\n", filename, errno);
 							nError += 1;
 						}
 					}
@@ -1903,7 +2025,8 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 						uint16_t nFrames = streamPtr.GetU16();
 
 						// extract it to a WAV file
-						strcat_s(filename, "wav");
+						//strcat_s(filename, "wav");
+                        strcat(filename, "wav");
 						ExtractToWAV(filename, desc, nFrames);
 					}
 				}
@@ -1923,8 +2046,8 @@ static void ExtractTracksOrStreams(bool extractStreams, DCSDecoder *decoderBase,
 			// extract it to a WAV file
 			char filename[MAX_PATH];
 			char desc[128];
-			sprintf_s(filename, "%s_%04x.wav", prefix, trackNum);
-			sprintf_s(desc, "track %04x", trackNum);
+			sprintf(filename, "%s_%04x.wav", prefix, trackNum);
+			sprintf(desc, "track %04x", trackNum);
 			ExtractToWAV(filename, desc, ti.time);
 		}
 	}
@@ -2073,7 +2196,7 @@ void TraceAndDisassemble(FILE *fp, const uint8_t *code, Annotations &annotations
 									// add an annotation for the assembly listing, showing
 									// the jump table location
 									char anobuf[128];
-									sprintf_s(anobuf, " ; I%d in ($%04X..$%04X)", ireg, jumpTableStart, jumpTableAddr - 1);
+									sprintf(anobuf, " ; I%d in ($%04X..$%04X)", ireg, jumpTableStart, jumpTableAddr - 1);
 									Annotate(annotations, addr, anobuf);
 
 									// we can stop looking now
@@ -2141,7 +2264,7 @@ void TraceAndDisassemble(FILE *fp, const uint8_t *code, Annotations &annotations
 				{
 					char msg[128];
 					const uint8_t *p = code + addr*4;
-					sprintf_s(msg, " ; unreachable code, bytes $%02x $%02x $%02x $%02x [%c%c%c%c]",
+					sprintf(msg, " ; unreachable code, bytes $%02x $%02x $%02x $%02x [%c%c%c%c]",
 						p[0], p[1], p[2], p[3],
 						CommentByte(p[0]), CommentByte(p[1]), CommentByte(p[2]), CommentByte(p[3]));
 
@@ -2438,7 +2561,7 @@ static void Disassemble(FILE *fp, const uint8_t *u2, uint16_t offset, uint16_t l
 
 					// annotate the instruction
 					char msg[128];
-					sprintf_s(msg, " ; Load program overlay to PM($%04X) from ROM U2[$%05X], %d opcodes (%d bytes)",
+					sprintf(msg, " ; Load program overlay to PM($%04X) from ROM U2[$%05X], %d opcodes (%d bytes)",
 						i4, romBankOffset, ax0, ax0*4);
 					Annotate(annotations, addr, msg);
 				}

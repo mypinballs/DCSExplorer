@@ -1,5 +1,23 @@
 // license:BSD-3-Clause
 // copyright-holders:Aaron Giles
+
+
+//missing defines temp fix - @mypinballs
+#define ADSP2101_IRQ0		0		/* IRQ0 */
+#define ADSP2101_SPORT1_RX	0		/* SPORT1 receive IRQ */
+#define ADSP2101_IRQ1		1		/* IRQ1 */
+#define ADSP2101_SPORT1_TX	1		/* SPORT1 transmit IRQ */
+#define ADSP2101_IRQ2		2		/* IRQ2 */
+#define ADSP2101_SPORT0_RX	3		/* SPORT0 receive IRQ */
+#define ADSP2101_SPORT0_TX	4		/* SPORT0 transmit IRQ */
+#define ADSP2105_IRQ0		0		/* IRQ0 */
+#define ADSP2105_SPORT1_RX	0		/* SPORT1 receive IRQ */
+#define ADSP2105_IRQ1		1		/* IRQ1 */
+#define ADSP2105_SPORT1_TX	1		/* SPORT1 transmit IRQ */
+#define ADSP2105_IRQ2		2		/* IRQ2 */
+
+
+
 /*===========================================================================
     ASTAT -- ALU/MAC status register
 ===========================================================================*/
@@ -83,7 +101,7 @@ static const int32_t constants[] =
 #define MSTAT_GOMODE    0x40            /* go mode enable */
 
 /* you must call this in order to change MSTAT */
-INLINE void set_mstat(int new_value)
+inline void set_mstat(int new_value)
 {
 	if ((new_value ^ adsp2100.mstat) & MSTAT_BANK)
 	{
@@ -119,7 +137,7 @@ INLINE void set_mstat(int new_value)
     PC stack handlers
 ===========================================================================*/
 
-INLINE uint32_t pc_stack_top(void)
+inline uint32_t pc_stack_top(void)
 {
 	if (adsp2100.pc_sp > 0)
 		return adsp2100.pc_stack[adsp2100.pc_sp - 1];
@@ -127,7 +145,7 @@ INLINE uint32_t pc_stack_top(void)
 		return adsp2100.pc_stack[0];
 }
 
-INLINE void set_pc_stack_top(uint32_t top)
+inline void set_pc_stack_top(uint32_t top)
 {
 	if (adsp2100.pc_sp > 0)
 		adsp2100.pc_stack[adsp2100.pc_sp - 1] = top;
@@ -135,7 +153,7 @@ INLINE void set_pc_stack_top(uint32_t top)
 		adsp2100.pc_stack[0] = top;
 }
 
-INLINE void pc_stack_push(void)
+inline void pc_stack_push(void)
 {
 	if (adsp2100.pc_sp < ADSP2100_PC_STACK_DEPTH)
 	{
@@ -147,7 +165,7 @@ INLINE void pc_stack_push(void)
 		adsp2100.sstat |= PC_OVER;
 }
 
-INLINE void pc_stack_push_val(uint32_t val)
+inline void pc_stack_push_val(uint32_t val)
 {
 	if (adsp2100.pc_sp < ADSP2100_PC_STACK_DEPTH)
 	{
@@ -159,7 +177,7 @@ INLINE void pc_stack_push_val(uint32_t val)
 		adsp2100.sstat |= PC_OVER;
 }
 
-INLINE void pc_stack_pop(void)
+inline void pc_stack_pop(void)
 {
 	if (adsp2100.pc_sp > 0)
 	{
@@ -170,7 +188,7 @@ INLINE void pc_stack_pop(void)
 	adsp2100.pc = adsp2100.pc_stack[adsp2100.pc_sp];
 }
 
-INLINE uint32_t pc_stack_pop_val(void)
+inline uint32_t pc_stack_pop_val(void)
 {
 	if (adsp2100.pc_sp > 0)
 	{
@@ -186,7 +204,7 @@ INLINE uint32_t pc_stack_pop_val(void)
     CNTR stack handlers
 ===========================================================================*/
 
-INLINE uint32_t cntr_stack_top(void)
+inline uint32_t cntr_stack_top(void)
 {
 	if (adsp2100.cntr_sp > 0)
 		return adsp2100.cntr_stack[adsp2100.cntr_sp - 1];
@@ -194,7 +212,7 @@ INLINE uint32_t cntr_stack_top(void)
 		return adsp2100.cntr_stack[0];
 }
 
-INLINE void cntr_stack_push(void)
+inline void cntr_stack_push(void)
 {
 	if (adsp2100.cntr_sp < ADSP2100_CNTR_STACK_DEPTH)
 	{
@@ -206,7 +224,7 @@ INLINE void cntr_stack_push(void)
 		adsp2100.sstat |= COUNT_OVER;
 }
 
-INLINE void cntr_stack_pop(void)
+inline void cntr_stack_pop(void)
 {
 	if (adsp2100.cntr_sp > 0)
 	{
@@ -222,7 +240,7 @@ INLINE void cntr_stack_pop(void)
     LOOP stack handlers
 ===========================================================================*/
 
-INLINE uint32_t loop_stack_top(void)
+inline uint32_t loop_stack_top(void)
 {
 	if (adsp2100.loop_sp > 0)
 		return adsp2100.loop_stack[adsp2100.loop_sp - 1];
@@ -230,7 +248,7 @@ INLINE uint32_t loop_stack_top(void)
 		return adsp2100.loop_stack[0];
 }
 
-INLINE void loop_stack_push(uint32_t value)
+inline void loop_stack_push(uint32_t value)
 {
 	if (adsp2100.loop_sp < ADSP2100_LOOP_STACK_DEPTH)
 	{
@@ -244,7 +262,7 @@ INLINE void loop_stack_push(uint32_t value)
 		adsp2100.sstat |= LOOP_OVER;
 }
 
-INLINE void loop_stack_pop(void)
+inline void loop_stack_pop(void)
 {
 	if (adsp2100.loop_sp > 0)
 	{
@@ -268,7 +286,7 @@ INLINE void loop_stack_pop(void)
     STAT stack handlers
 ===========================================================================*/
 
-INLINE void stat_stack_push(void)
+inline void stat_stack_push(void)
 {
 	if (adsp2100.stat_sp < ADSP2100_STAT_STACK_DEPTH)
 	{
@@ -282,7 +300,7 @@ INLINE void stat_stack_push(void)
 		adsp2100.sstat |= STATUS_OVER;
 }
 
-INLINE void stat_stack_pop(void)
+inline void stat_stack_pop(void)
 {
 	if (adsp2100.stat_sp > 0)
 	{
@@ -302,7 +320,7 @@ INLINE void stat_stack_pop(void)
     condition code checking
 ===========================================================================*/
 
-INLINE int CONDITION(int c)
+inline int CONDITION(int c)
 {
 	if (c != 14)
 		return condition_table[((c) << 8) | adsp2100.astat];
@@ -499,7 +517,7 @@ static int32_t (*rd_reg[4][16])(void) =
     Modulus addressing logic
 ===========================================================================*/
 
-INLINE void modify_address(uint32_t ireg, uint32_t mreg)
+inline void modify_address(uint32_t ireg, uint32_t mreg)
 {
 	uint32_t base = adsp2100.base[ireg];
 	uint32_t i = adsp2100.i[ireg];
@@ -517,7 +535,7 @@ INLINE void modify_address(uint32_t ireg, uint32_t mreg)
     Data memory accessors
 ===========================================================================*/
 
-INLINE void data_write_dag1(uint32_t op, int32_t val)
+inline void data_write_dag1(uint32_t op, int32_t val)
 {
 	uint32_t ireg = (op >> 2) & 3;
 	uint32_t mreg = op & 3;
@@ -541,7 +559,7 @@ INLINE void data_write_dag1(uint32_t op, int32_t val)
 }
 
 
-INLINE uint32_t data_read_dag1(uint32_t op)
+inline uint32_t data_read_dag1(uint32_t op)
 {
 	uint32_t ireg = (op >> 2) & 3;
 	uint32_t mreg = op & 3;
@@ -566,7 +584,7 @@ INLINE uint32_t data_read_dag1(uint32_t op)
 	return res;
 }
 
-INLINE void data_write_dag2(uint32_t op, int32_t val)
+inline void data_write_dag2(uint32_t op, int32_t val)
 {
 	uint32_t ireg = 4 + ((op >> 2) & 3);
 	uint32_t mreg = 4 + (op & 3);
@@ -583,7 +601,7 @@ INLINE void data_write_dag2(uint32_t op, int32_t val)
 }
 
 
-INLINE uint32_t data_read_dag2(uint32_t op)
+inline uint32_t data_read_dag2(uint32_t op)
 {
 	uint32_t ireg = 4 + ((op >> 2) & 3);
 	uint32_t mreg = 4 + (op & 3);
@@ -605,7 +623,7 @@ INLINE uint32_t data_read_dag2(uint32_t op)
     Program memory accessors
 ===========================================================================*/
 
-INLINE void pgm_write_dag2(uint32_t op, int32_t val)
+inline void pgm_write_dag2(uint32_t op, int32_t val)
 {
 	uint32_t ireg = 4 + ((op >> 2) & 3);
 	uint32_t mreg = 4 + (op & 3);
@@ -622,7 +640,7 @@ INLINE void pgm_write_dag2(uint32_t op, int32_t val)
 }
 
 
-INLINE uint32_t pgm_read_dag2(uint32_t op)
+inline uint32_t pgm_read_dag2(uint32_t op)
 {
 	uint32_t ireg = 4 + ((op >> 2) & 3);
 	uint32_t mreg = 4 + (op & 3);

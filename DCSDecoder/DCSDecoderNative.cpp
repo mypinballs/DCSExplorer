@@ -13,6 +13,7 @@
 #include <string.h>
 #include <memory>
 #include <list>
+#include <unordered_map>
 #include "DCSDecoderNative.h"
 
 // subclass registration

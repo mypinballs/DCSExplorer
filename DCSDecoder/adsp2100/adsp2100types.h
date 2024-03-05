@@ -4,7 +4,8 @@
 #if _WIN32
 #define LSB_FIRST
 #else
-#error "One of LSB_FIRST or MSB_FIRST must be #defined to specify platform byte order"
+#define LSB_FIRST
+//#error "One of LSB_FIRST or MSB_FIRST must be #defined to specify platform byte order"
 #endif
 #elif defined(LSB_FIRST) && defined(MSB_FIRST)
 #error "Only one of LSB_FIRST -or- MSB_FIRST can be #defined"
@@ -97,7 +98,7 @@ typedef union
 	struct { uint32_t mr0, mr1; } mry;
 #else
 	struct { ADSPREG16 mrzero, mr2, mr1, mr0; } mrx;
-	struct { UINT32 mr1, mr0; } mry;
+	struct { uint32_t mr1, mr0; } mry;
 #endif
 	uint64_t mr;
 } MACRESULT;
